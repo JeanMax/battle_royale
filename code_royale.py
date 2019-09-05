@@ -39,11 +39,20 @@ class _Struct():
         self.struct_type = struct_type
 
 
+class Tower(_Struct):
+    struct_type = 1
+
+    def __init__(self, owner, attack_radius, hp):
+        super().__init__(owner=owner, struct_type=Tower.struct_type)
+        self.hp = hp
+        self.attack_radius = attack_radius
+
+
 class Barrack(_Struct):
     struct_type = 2
 
     def __init__(self, owner, creep_type, cooldown_delay=0):
-        super().__init__(owner=owner, struct_type=2)
+        super().__init__(owner=owner, struct_type=Barrack.struct_type)
         self.creep_type = creep_type
         self.cooldown_delay = cooldown_delay
 
@@ -86,6 +95,21 @@ class Archer(_Creep):
     cost = 100
     batch_size = 2
     monster_type = 1
+
+    def __init__(self, owner, hp, coord):
+        super().__init__(
+            owner=owner,
+            hp=hp,
+            monster_id=Archer.monster_type,
+            coord=coord,
+            creep_type=Archer.monster_type
+        )
+
+
+class Giant(_Creep):
+    cost = 140
+    batch_size = 1
+    monster_type = 2
 
     def __init__(self, owner, hp, coord):
         super().__init__(
@@ -155,8 +179,8 @@ class Game():
                 _,
                 struct_type,
                 owner,
-                cooldown_delay,
-                creep_type
+                param_1,
+                param_2
             ) = [int(j) for j in input().split()]
             site = self.field.sites_dic[site_id]
             if struct_type == NOP:
@@ -164,8 +188,14 @@ class Game():
             elif struct_type == Barrack.struct_type:
                 site.struct = Barrack(
                     owner=owner,
-                    creep_type=creep_type,
-                    cooldown_delay=cooldown_delay
+                    creep_type=param_2,
+                    cooldown_delay=param_1
+                )
+            elif struct_type == Tower.struct_type:
+                site.struct = Tower(
+                    owner=owner,
+                    hp=param_1,
+                    attack_radius=param_2
                 )
             else:
                 raise Exception("Unknow struct type :/")
@@ -193,6 +223,10 @@ class Game():
             elif unit_type == Knight.monster_type:
                 self.creeps[owner].append(
                     Knight(owner=owner, hp=health, coord=Coord(x=x, y=y))
+                )
+            elif unit_type == Giant.monster_type:
+                self.creeps[owner].append(
+                    Giant(owner=owner, hp=health, coord=Coord(x=x, y=y))
                 )
             else:
                 raise Exception("Unknow monster type :/")
