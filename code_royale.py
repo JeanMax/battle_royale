@@ -1,3 +1,4 @@
+import math
 from collections import namedtuple
 
 NOP = -1
@@ -5,6 +6,18 @@ FRIENDLY = 0
 ENEMY = 1
 
 Coord = namedtuple('Point', 'x y')
+
+
+def get_distance(coord_a, coord_b):
+    return math.hypot(coord_b.x - coord_a.x, coord_b.y - coord_a.y)
+
+
+def get_closest(unit_src, unit_targets):
+    targets_dist = [
+        (target, get_distance(unit_src.coord, target.coord))
+        for target in unit_targets
+    ]
+    return sorted(targets_dist, key=lambda x: x[1])[0][0]
 
 
 class _Unit():
@@ -17,7 +30,7 @@ class _Unit():
 class Site(_Unit):
     def __init__(self, site_id, coord, radius):
         super().__init__(unit_id=site_id, coord=coord, radius=radius)
-        self.struct = None
+        self.struct = NOP
 
 
 class _Struct():
@@ -146,15 +159,16 @@ class Game():
                 creep_type
             ) = [int(j) for j in input().split()]
             site = self.field.sites_dic[site_id]
-            if struct_type != NOP:
-                if struct_type == Barrack.struct_type:
-                    site.struct = Barrack(
-                        owner=owner,
-                        creep_type=creep_type,
-                        cooldown_delay=cooldown_delay
-                    )
-                else:
-                    raise Exception("Unknow struct type :/")
+            if struct_type == NOP:
+                site.struct = NOP
+            elif struct_type == Barrack.struct_type:
+                site.struct = Barrack(
+                    owner=owner,
+                    creep_type=creep_type,
+                    cooldown_delay=cooldown_delay
+                )
+            else:
+                raise Exception("Unknow struct type :/")
 
         self.num_units = int(input())
         self.creeps = [[], []]
@@ -184,12 +198,38 @@ class Game():
                 raise Exception("Unknow monster type :/")
 
     def play_turn(self):
-        print("WAIT")
+        # TODO: priorities:
+        # - hide
+        # - build
+        # - destroy
+        empty_sites = [
+            s
+            for s in self.field.sites_dic.values()
+            if s.struct == NOP
+        ]
+        if empty_sites:
+            closest_empty_site = get_closest(
+                self.queens[FRIENDLY], empty_sites
+            )
+            barrack_type = "KNIGHT"
+            print(f"BUILD {closest_empty_site.id} BARRACKS-{barrack_type}")
+        else:
+            print("WAIT")
 
-    def send_orders(self):
-        # TODO: wait/move/build
         # TODO: train
-        print("TRAIN")
+        friendly_barracks = [
+            str(s.id)
+            for s in self.field.sites_dic.values()
+            if s.struct != NOP
+            and s.struct.owner == FRIENDLY
+            and s.struct.cooldown_delay == 0
+        ]
+        max_training_affordable = self.gold // Knight.cost
+        to_train = friendly_barracks[:max_training_affordable]
+        if to_train:
+            print(f"TRAIN {' '.join(to_train)}")
+        else:
+            print("TRAIN")
 
 
 # MAIN
@@ -197,4 +237,3 @@ game = Game()
 while True:
     game.read_infos()
     game.play_turn()
-    game.send_orders()
